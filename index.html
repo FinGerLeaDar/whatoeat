@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#081426">
+  <title>退休投資規劃 Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-mark">✦</div>
+    <div>
+      <h1>退休投資規劃器</h1>
+      <p>Retirement & Investment Planner · 免費、免登入、資料只留在你裝置</p>
+    </div>
+    <div class="header-tag">VOO · 長期規劃</div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel settings">
+      <div class="panel-title"><span>⚙</span> 基本設定</div>
+      <form id="settingsForm">
+        <div class="field-grid two">
+          <label>目前年齡<input id="age" type="number" min="18" max="100" value="36"></label>
+          <label>退休年齡<input id="retireAge" type="number" min="19" max="110" value="65"></label>
+        </div>
+        <div class="section-label">💵 投資與現金</div>
+        <label>初始投資本金（USD）<input id="initial" type="number" min="0" step="100" value="10000"></label>
+        <label>每月定投（USD）<input id="monthly" type="number" min="0" step="25" value="500"></label>
+        <label>現有現金（HKD）<input id="cash" type="number" min="0" step="1000" value="200000"></label>
+        <label>每月可額外儲蓄（HKD）<input id="monthlyCash" type="number" min="0" step="100" value="4100"></label>
+        <div class="section-label">📈 回報與通脹</div>
+        <label>預期年回報（%）<input id="returnRate" type="number" min="-20" max="30" step="0.5" value="4"></label>
+        <label>通脹率（%）<input id="inflation" type="number" min="0" max="20" step="0.1" value="2.5"></label>
+        <label>USD → HKD 匯率<input id="fx" type="number" min="1" max="20" step="0.01" value="7.8"></label>
+        <div class="section-label">🔁 定投 Review / 加供</div>
+        <label>每隔幾年檢討一次
+          <select id="reviewEvery">
+            <option value="1">每 1 年</option>
+            <option value="3">每 3 年</option>
+            <option value="5">每 5 年</option>
+          </select>
+        </label>
+        <label>每次 Review 每月加供（USD）<input id="increase" type="number" min="0" step="25" value="100"></label>
+        <label>最高每月定投上限（USD）<input id="cap" type="number" min="0" step="50" value="2000"></label>
+        <div class="section-label">🏖 退休後估算</div>
+        <label>每年提取比例（%）<input id="withdrawal" type="number" min="0" max="15" step="0.5" value="4"></label>
+        <label>退休後每月生活費目標（USD，今日價值）<input id="goal" type="number" min="0" step="100" value="2500"></label>
+        <button type="submit" class="primary-btn">更新計算</button>
+        <button type="button" id="resetBtn" class="secondary-btn">重設為預設值</button>
+      </form>
+      <p class="small-note">提示：這是規劃估算工具，不是投資建議。實際回報不會固定，VOO 可能虧損。</p>
+    </aside>
+
+    <section class="content">
+      <div class="hero-row">
+        <div class="hero-copy">
+          <p class="eyebrow">YOUR RETIREMENT OUTLOOK</p>
+          <h2>用你自己的數字，規劃下一步。</h2>
+          <p>調整月供、回報、Review 年期與現金儲蓄，即時比較退休資產與購買力。</p>
+        </div>
+        <div class="status-pill"><span class="dot"></span> 本機計算 · 無 API</div>
+      </div>
+
+      <div class="metrics">
+        <article class="metric-card blue">
+          <div class="metric-label">退休時預計投資資產</div>
+          <div id="finalBalance" class="metric-value">—</div>
+          <div id="finalReal" class="metric-sub">按今日購買力：—</div>
+        </article>
+        <article class="metric-card green">
+          <div class="metric-label">累計投入本金</div>
+          <div id="contributed" class="metric-value">—</div>
+          <div id="contribHKD" class="metric-sub">—</div>
+        </article>
+        <article class="metric-card purple">
+          <div class="metric-label">估算投資增長</div>
+          <div id="growth" class="metric-value">—</div>
+          <div class="metric-sub">預測值，不是保證</div>
+        </article>
+        <article class="metric-card orange">
+          <div class="metric-label">退休後每月提取（設定比例）</div>
+          <div id="monthlyDraw" class="metric-value">—</div>
+          <div id="monthlyDrawHKD" class="metric-sub">—</div>
+        </article>
+      </div>
+
+      <div class="main-grid">
+        <article class="panel chart-panel">
+          <div class="panel-heading">
+            <div><h3>資產增長預測</h3><p>根據你設定的每月供款及 Review 加供規則</p></div>
+            <button id="downloadCsv" class="small-btn">匯出 CSV</button>
+          </div>
+          <canvas id="growthChart" height="300" aria-label="資產增長圖表"></canvas>
+          <div class="legend">
+            <span><i class="legend-dot blue-dot"></i> 預計資產</span>
+            <span><i class="legend-dot gray-dot"></i> 累計投入本金</span>
+          </div>
+        </article>
+
+        <article class="panel side-card">
+          <h3>退休目標檢查</h3>
+          <div class="goal-number" id="goalStatus">—</div>
+          <p id="goalText">—</p>
+          <div class="progress-track"><div id="goalProgress" class="progress-fill"></div></div>
+          <div class="mini-stat"><span>目標每月生活費</span><strong id="goalFuture">—</strong></div>
+          <div class="mini-stat"><span>達到目標所需資產（4%規則）</span><strong id="neededBalance">—</strong></div>
+          <p class="small-note">生活費目標先按今日購買力計，再按通脹推算退休時金額。</p>
+        </article>
+      </div>
+
+      <div class="main-grid lower-grid">
+        <article class="panel table-panel">
+          <div class="panel-heading"><div><h3>年度預測</h3><p>每年年末估算；按需查看每年加供後的變化</p></div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>年齡</th><th>每月供款</th><th>該年投入</th><th>累計本金</th><th>預計資產</th><th>今日購買力</th></tr></thead>
+              <tbody id="projectionRows"></tbody>
+            </table>
+          </div>
+        </article>
+        <article class="panel withdrawal-panel">
+          <h3>不同提取比例比較</h3>
+          <p class="muted">以退休時預計資產估算每月可提取金額</p>
+          <div id="withdrawalRows"></div>
+          <div class="divider"></div>
+          <h3>現金儲蓄估算</h3>
+          <div class="mini-stat"><span>目前現金</span><strong id="cashNow">—</strong></div>
+          <div class="mini-stat"><span>假設持續儲蓄至退休</span><strong id="cashLater">—</strong></div>
+          <p class="small-note">現金估算不計利息、不計突發支出，也不假設現金會投入股市。</p>
+        </article>
+      </div>
+      <footer>退休投資規劃器 · 免費開源 · 只作教育及情境估算，不保證回報。</footer>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
